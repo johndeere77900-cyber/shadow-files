@@ -238,6 +238,8 @@ class ProductionRepositoryTests(unittest.TestCase):
             asset_type=AssetType.VIDEO,
             status=AssetStatus.REQUIRED,
             name="Final video",
+            location="output/final.mp4",
+            checksum="checksum-001",
         )
 
         self.asset_repository.create(asset)
@@ -250,6 +252,23 @@ class ProductionRepositoryTests(unittest.TestCase):
         self.assertEqual(
             updated.status,
             AssetStatus.READY,
+        )
+
+        loaded = self.asset_repository.get(
+            "asset-001"
+        )
+
+        self.assertEqual(
+            loaded.status,
+            AssetStatus.READY,
+        )
+        self.assertEqual(
+            loaded.location,
+            "output/final.mp4",
+        )
+        self.assertEqual(
+            loaded.checksum,
+            "checksum-001",
         )
 
 
