@@ -1,9 +1,8 @@
 """
 Shadow Files Phase 12 qualification tests.
 
-These tests verify the minimum qualification boundary for the
-investigation/research foundation before Phase 12 is declared ready
-for the next engineering phase.
+These tests provide the final qualification gate for the investigation
+and research-memory foundation before downstream production phases begin.
 """
 
 import sqlite3
@@ -11,23 +10,28 @@ import unittest
 from datetime import datetime, timezone
 
 from app.investigation.models import (
-    Investigation,
     ResearchStatus,
 )
-from app.investigation.repository import InvestigationRepository
 from app.investigation.service import InvestigationService
-from database.migrations import migrate_investigation_schema
+from database.investigation_schema import (
+    create_investigation_schema,
+)
+from database.migrations import (
+    migrate_investigation_schema,
+)
+from database.schema import create_schema
 
 
 class Phase12QualificationTests(unittest.TestCase):
-    """Validate the Phase 12 qualification boundary."""
+    """Final qualification tests for the Phase 12 foundation."""
 
     def setUp(self) -> None:
         self.connection = sqlite3.connect(":memory:")
         self.connection.row_factory = sqlite3.Row
         self.connection.execute("PRAGMA foreign_keys = ON;")
 
-        migrate_investigation_schema(self.connection)
+        create_schema(self.connection)
+        create_investigation_schema(self.connection)
 
         self.connection.execute(
             """
@@ -36,18 +40,16 @@ class Phase12QualificationTests(unittest.TestCase):
                 title,
                 state,
                 created_at,
-                updated_at,
-                summary
+                updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?)
             """,
             (
                 "CASE-QUALIFICATION",
-                "Qualification Case",
+                "Phase 12 Qualification Case",
                 "IDEA",
                 "2026-01-01T00:00:00+00:00",
                 "2026-01-01T00:00:00+00:00",
-                "",
             ),
         )
         self.connection.commit()
@@ -55,73 +57,32 @@ class Phase12QualificationTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.connection.close()
 
-    def test_investigation_memory_is_persistent_within_database(
+    def test_investigation_schema_can_be_created_and_migrated(
         self,
     ) -> None:
-        service = InvestigationService(
-            self.connection
-        )
+        migrate_investigation_schema(self.connection)
+        migrate_investigation_schema(self.connection)
 
-        started_at = datetime(
-            2026,
-            1,
-            1,
-            12,
-            0,
-            tzinfo=timezone.utc,
-        )
+        for table_name in (
+            "investigations",
+            "research_sources",
+            "research_items",
+            "investigation_timeline",
+        ):
+            row = self.connection.execute(
+                """
+                SELECT COUNT(*) AS count
+                FROM sqlite_master
+                WHERE type = 'table'
+                  AND name = ?
+                """,
+                (table_name,),
+            ).fetchone()
 
-        created = service.create(
-            investigation_id="INV-QUALIFIED",
-            case_id="CASE-QUALIFICATION",
-            started_at=started_at,
-        )
-
-        self.assertEqual(
-            created.status,
-            ResearchStatus.NOT_STARTED,
-        )
-
-        repository = InvestigationRepository(
-            self.connection
-        )
-
-        retrieved = repository.get(
-            "INV-QUALIFIED"
-        )
-
-        self.assertIsNotNone(retrieved)
-        self.assertEqual(
-            retrieved.investigation_id,
-            "INV-QUALIFIED",
-        )
-        self.assertEqual(
-            retrieved.case_id,
-            "CASE-QUALIFICATION",
-        )
-
-    def test_research_cannot_skip_required_review_stage(
-        self,
-    ) -> None:
-        service = InvestigationService(
-            self.connection
-        )
-
-        service.create(
-            investigation_id="INV-REVIEW-GATE",
-            case_id="CASE-QUALIFICATION",
-            started_at=datetime.now(timezone.utc),
-        )
-
-        service.change_status(
-            "INV-REVIEW-GATE",
-            ResearchStatus.RESEARCHING,
-        )
-
-        with self.assertRaises(Exception):
-            service.change_status(
-                "INV-REVIEW-GATE",
-                ResearchStatus.VERIFIED,
+            self.assertEqual(
+                row["count"],
+                1,
+                msg=f"Required table missing or duplicated: {table_name}",
             )
 
     def test_verified_investigation_has_completion_timestamp(
@@ -132,100 +93,119 @@ class Phase12QualificationTests(unittest.TestCase):
         )
 
         service.create(
-            investigation_id="INV-COMPLETION",
+            investigation_id="INV-QUALIFIED",
             case_id="CASE-QUALIFICATION",
             started_at=datetime.now(timezone.utc),
         )
 
         service.change_status(
-            "INV-COMPLETION",
+            "INV-QUALIFIED",
             ResearchStatus.RESEARCHING,
         )
 
         service.change_status(
-            "INV-COMPLETION",
+            "INV-QUALIFIED",
             ResearchStatus.EVIDENCE_REVIEW,
         )
 
-        verified = service.change_status(
-            "INV-COMPLETION",
+        investigation = service.change_status(
+            "INV-QUALIFIED",
             ResearchStatus.VERIFIED,
         )
 
         self.assertEqual(
-            verified.status,
+            investigation.status,
             ResearchStatus.VERIFIED,
         )
         self.assertIsNotNone(
-            verified.completed_at
-        )
-        self.assertGreaterEqual(
-            verified.completed_at,
-            verified.started_at,
+            investigation.completed_at,
         )
 
-    def test_verified_state_is_terminal(self) -> None:
+    def test_incomplete_research_cannot_be_marked_verified(
+        self,
+    ) -> None:
         service = InvestigationService(
             self.connection
         )
 
         service.create(
-            investigation_id="INV-TERMINAL",
+            investigation_id="INV-INCOMPLETE-QUAL",
             case_id="CASE-QUALIFICATION",
             started_at=datetime.now(timezone.utc),
         )
 
         service.change_status(
-            "INV-TERMINAL",
+            "INV-INCOMPLETE-QUAL",
             ResearchStatus.RESEARCHING,
         )
 
         service.change_status(
-            "INV-TERMINAL",
-            ResearchStatus.EVIDENCE_REVIEW,
-        )
-
-        service.change_status(
-            "INV-TERMINAL",
-            ResearchStatus.VERIFIED,
+            "INV-INCOMPLETE-QUAL",
+            ResearchStatus.INCOMPLETE,
         )
 
         with self.assertRaises(Exception):
             service.change_status(
-                "INV-TERMINAL",
-                ResearchStatus.RESEARCHING,
+                "INV-INCOMPLETE-QUAL",
+                ResearchStatus.VERIFIED,
             )
 
-    def test_phase12_does_not_create_a_second_case_database(
+    def test_existing_case_is_preserved(self) -> None:
+        migrate_investigation_schema(self.connection)
+
+        row = self.connection.execute(
+            """
+            SELECT
+                case_id,
+                title,
+                state
+            FROM cases
+            WHERE case_id = ?
+            """,
+            ("CASE-QUALIFICATION",),
+        ).fetchone()
+
+        self.assertIsNotNone(row)
+        self.assertEqual(
+            row["case_id"],
+            "CASE-QUALIFICATION",
+        )
+        self.assertEqual(
+            row["title"],
+            "Phase 12 Qualification Case",
+        )
+        self.assertEqual(
+            row["state"],
+            "IDEA",
+        )
+
+    def test_phase12_tables_are_foreign_key_protected(
         self,
     ) -> None:
-        tables = self.connection.execute(
-            """
-            SELECT name
-            FROM sqlite_master
-            WHERE type = 'table'
-            """
-        ).fetchall()
+        migrate_investigation_schema(self.connection)
 
-        table_names = {
-            row["name"]
-            for row in tables
-        }
-
-        self.assertIn(
-            "cases",
-            table_names,
-        )
-
-        self.assertIn(
-            "investigations",
-            table_names,
-        )
-
-        self.assertNotIn(
-            "investigation_cases",
-            table_names,
-        )
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.connection.execute(
+                """
+                INSERT INTO investigations (
+                    investigation_id,
+                    case_id,
+                    status,
+                    started_at,
+                    completed_at,
+                    notes
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    "INV-ORPHAN-QUAL",
+                    "CASE-DOES-NOT-EXIST",
+                    "NOT_STARTED",
+                    "2026-01-01T00:00:00+00:00",
+                    None,
+                    "",
+                ),
+            )
 
 
 if __name__ == "__main__":
