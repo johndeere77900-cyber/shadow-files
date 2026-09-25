@@ -3,9 +3,10 @@ Shadow Files database migration layer.
 
 Phase 7 established schema version 1.
 
-Phase 11 adds schema version 2 for persistent evidence records.
-Migrations remain explicit so existing databases are upgraded without
-silently destroying data.
+Phase 11 upgrades version 1 databases to schema version 2 by adding
+the complete case/evidence memory tables.
+
+Migrations are explicit and non-destructive.
 """
 
 import sqlite3
@@ -48,8 +49,11 @@ def migrate(
     """
     Bring the database to the current schema version.
 
-    Version 1 is upgraded to version 2 by adding the Phase 11
-    evidence table and indexes.
+    A new database receives the complete current schema.
+
+    A version 1 database is upgraded by creating the Phase 11
+    evidence-memory tables and indexes that do not already exist.
+    Existing records are preserved.
     """
 
     current_version = get_schema_version(connection)
@@ -86,6 +90,47 @@ def migrate(
                     ON DELETE CASCADE
             );
 
+            CREATE TABLE IF NOT EXISTS claims (
+                claim_id TEXT PRIMARY KEY,
+                case_id TEXT NOT NULL,
+                statement TEXT NOT NULL,
+                status TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                reviewed_at TEXT,
+                notes TEXT NOT NULL,
+                FOREIGN KEY (case_id)
+                    REFERENCES cases(case_id)
+                    ON DELETE CASCADE
+            );
+
+            CREATE TABLE IF NOT EXISTS evidence_sources (
+                source_id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                url TEXT,
+                publisher TEXT,
+                publication_date TEXT,
+                retrieved_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS claim_evidence_links (
+                link_id TEXT PRIMARY KEY,
+                claim_id TEXT NOT NULL,
+                evidence_id TEXT NOT NULL,
+                relation TEXT NOT NULL,
+                notes TEXT NOT NULL,
+                FOREIGN KEY (claim_id)
+                    REFERENCES claims(claim_id)
+                    ON DELETE CASCADE,
+                FOREIGN KEY (evidence_id)
+                    REFERENCES evidence(evidence_id)
+                    ON DELETE CASCADE,
+                UNIQUE (
+                    claim_id,
+                    evidence_id,
+                    relation
+                )
+            );
+
             CREATE INDEX IF NOT EXISTS idx_evidence_case
                 ON evidence(case_id);
 
@@ -94,6 +139,27 @@ def migrate(
 
             CREATE INDEX IF NOT EXISTS idx_evidence_retrieved
                 ON evidence(retrieved_at);
+
+            CREATE INDEX IF NOT EXISTS idx_claims_case
+                ON claims(case_id);
+
+            CREATE INDEX IF NOT EXISTS idx_claims_status
+                ON claims(status);
+
+            CREATE INDEX IF NOT EXISTS idx_claims_created
+                ON claims(created_at);
+
+            CREATE INDEX IF NOT EXISTS idx_evidence_sources_publisher
+                ON evidence_sources(publisher);
+
+            CREATE INDEX IF NOT EXISTS idx_evidence_sources_retrieved
+                ON evidence_sources(retrieved_at);
+
+            CREATE INDEX IF NOT EXISTS idx_claim_evidence_claim
+                ON claim_evidence_links(claim_id);
+
+            CREATE INDEX IF NOT EXISTS idx_claim_evidence_evidence
+                ON claim_evidence_links(evidence_id);
             """
         )
 
@@ -112,4 +178,4 @@ def migrate(
     raise MigrationError(
         f"No migration path exists from version "
         f"{current_version} to {SCHEMA_VERSION}."
-        )
+    )
