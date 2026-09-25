@@ -215,23 +215,17 @@ class SchedulerConstraintTests(unittest.TestCase):
 
         validate_deadlines(slots)
 
-    def test_deadline_after_scheduled_time_is_rejected(self):
+    def test_model_rejects_deadline_after_scheduled_time(self):
         scheduled_for = self._time(20)
 
-        slots = [
+        with self.assertRaises(ValueError):
             self._slot(
                 "schedule-001",
                 "prod-001",
                 ScheduleType.PUBLICATION,
                 scheduled_for,
                 deadline=scheduled_for + timedelta(hours=1),
-            ),
-        ]
-
-        with self.assertRaises(
-            ScheduleConstraintError
-        ):
-            validate_deadlines(slots)
+            )
 
     def test_missing_deadline_is_allowed(self):
         slots = [
