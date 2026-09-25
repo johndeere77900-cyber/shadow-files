@@ -12,13 +12,14 @@ from dataclasses import dataclass
 import re
 
 from app.conversation.context import ConversationContextStore
-from app.conversation.intents import Intent, IntentParser, IntentType
+from app.conversation.intents import Intent, IntentType
 from app.conversation.models import (
     ConversationContext,
     ConversationIntent,
     ConversationIntentResult,
     ConversationMode,
 )
+from app.conversation.parser import IntentParser
 
 
 @dataclass(frozen=True)
@@ -264,4 +265,4 @@ class ConversationService:
         return (
             f"intent={interpretation.intent.value}; "
             f"mode={interpretation.mode.value}"
-        )
+    )
