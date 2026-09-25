@@ -4,8 +4,13 @@ import {
 
 export interface Env {
   SHADOW_FILES_MODE: string;
+
   TELEGRAM_BOT_TOKEN: string;
   TELEGRAM_AUTHORIZED_CHAT_ID: string;
+
+  AI_API_URL: string;
+  AI_API_KEY: string;
+  AI_MODEL: string;
 }
 
 export default {
@@ -22,21 +27,24 @@ export default {
       return new Response(
         JSON.stringify({
           ok: true,
-          service: "Shadow Files Cloudflare Control",
+          service:
+            "Shadow Files Cloudflare Control",
           mode: env.SHADOW_FILES_MODE,
           status: "online",
         }),
         {
           status: 200,
           headers: {
-            "content-type": "application/json",
+            "content-type":
+              "application/json",
           },
         },
       );
     }
 
     if (
-      url.pathname === "/telegram/webhook"
+      url.pathname ===
+      "/telegram/webhook"
     ) {
       return handleTelegramWebhook(
         request,
@@ -52,7 +60,8 @@ export default {
       {
         status: 404,
         headers: {
-          "content-type": "application/json",
+          "content-type":
+            "application/json",
         },
       },
     );
