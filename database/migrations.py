@@ -1,11 +1,11 @@
 """
 Shadow Files database migration layer.
 
-Phase 7 starts with schema version 1.
+Phase 7 established schema version 1.
 
-Migrations are kept separate from schema creation so future database
-changes can be applied in a controlled and traceable manner without
-silently destroying existing data.
+Phase 11 adds schema version 2 for persistent evidence records.
+Migrations remain explicit so existing databases are upgraded without
+silently destroying data.
 """
 
 import sqlite3
@@ -23,11 +23,7 @@ class MigrationError(Exception):
 def get_schema_version(
     connection: sqlite3.Connection,
 ) -> int:
-    """
-    Return the currently recorded database schema version.
-
-    A database without metadata is treated as version 0.
-    """
+    """Return the currently recorded database schema version."""
 
     try:
         row = connection.execute(
@@ -52,7 +48,8 @@ def migrate(
     """
     Bring the database to the current schema version.
 
-    Phase 7 currently has only schema version 1.
+    Version 1 is upgraded to version 2 by adding the Phase 11
+    evidence table and indexes.
     """
 
     current_version = get_schema_version(connection)
@@ -69,7 +66,50 @@ def migrate(
         create_schema(connection)
         return SCHEMA_VERSION
 
+    if current_version == 1:
+        connection.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS evidence (
+                evidence_id TEXT PRIMARY KEY,
+                case_id TEXT NOT NULL,
+                claim TEXT NOT NULL,
+                source_name TEXT NOT NULL,
+                source_url TEXT,
+                evidence_type TEXT NOT NULL,
+                status TEXT NOT NULL,
+                retrieved_at TEXT NOT NULL,
+                publication_date TEXT,
+                reliability_assessment TEXT NOT NULL,
+                notes TEXT NOT NULL,
+                FOREIGN KEY (case_id)
+                    REFERENCES cases(case_id)
+                    ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_evidence_case
+                ON evidence(case_id);
+
+            CREATE INDEX IF NOT EXISTS idx_evidence_status
+                ON evidence(status);
+
+            CREATE INDEX IF NOT EXISTS idx_evidence_retrieved
+                ON evidence(retrieved_at);
+            """
+        )
+
+        connection.execute(
+            """
+            UPDATE schema_metadata
+            SET value = ?
+            WHERE key = 'schema_version'
+            """,
+            (str(SCHEMA_VERSION),),
+        )
+
+        connection.commit()
+        return SCHEMA_VERSION
+
     raise MigrationError(
         f"No migration path exists from version "
         f"{current_version} to {SCHEMA_VERSION}."
-  )
+        )
