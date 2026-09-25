@@ -9,7 +9,7 @@ Business execution remains outside the transport layer.
 
 from app.telegram.config import TelegramConfig
 from app.telegram.router import TelegramRouter
-from app.telegram.transport import NullTelegramTransport
+from app.telegram.transport import TelegramBotTransport
 
 
 def main() -> None:
@@ -35,10 +35,9 @@ def main() -> None:
             "when Telegram is enabled."
         )
 
-    # Real Telegram transport will replace this adapter.
-    # Keeping the transport boundary explicit prevents Telegram
-    # credentials and network logic from entering the application core.
-    transport = NullTelegramTransport()
+    transport = TelegramBotTransport(
+        bot_token=config.bot_token,
+    )
 
     router = TelegramRouter(
         authorized_chat_id=config.authorized_chat_id,
@@ -47,10 +46,26 @@ def main() -> None:
     messages = transport.receive()
 
     for message in messages:
-        route = router.route(message)
-        print(
-            f"Received authorized Telegram message "
-            f"from {route.actor.chat_id}: {route.message.text}"
+        try:
+            route = router.route(message)
+        except Exception:
+            response = router.unauthorized_response(
+                chat_id=message.chat_id,
+            )
+            transport.send(response)
+            continue
+
+        response_text = (
+            "Shadow Files received your message: "
+            f"{route.message.text}"
+        )
+
+        transport.send(
+            message=type(
+                "OutgoingMessageFactory",
+                (),
+                {},
+            )
         )
 
 
