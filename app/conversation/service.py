@@ -187,6 +187,10 @@ class ConversationService:
                 ConversationMode.EXECUTION_REQUEST,
                 ConversationIntent.CONTINUE_WORK,
             ),
+            IntentType.SCHEDULE_CHANGE: (
+                ConversationMode.EXECUTION_REQUEST,
+                ConversationIntent.CHANGE_SCHEDULE,
+            ),
             IntentType.RESEARCH: (
                 ConversationMode.EXECUTION_REQUEST,
                 ConversationIntent.START_RESEARCH,
@@ -260,4 +264,4 @@ class ConversationService:
         return (
             f"intent={interpretation.intent.value}; "
             f"mode={interpretation.mode.value}"
-    )
+        )
