@@ -29,8 +29,36 @@ class Phase14IntegrationTests(unittest.TestCase):
         self.connection = sqlite3.connect(":memory:")
         self.connection.execute("PRAGMA foreign_keys = ON")
 
-        create_production_schema(self.connection)
-        create_scheduler_schema(self.connection)
+        self.connection.executescript(
+            """
+            CREATE TABLE cases (
+                case_id TEXT PRIMARY KEY,
+                title TEXT NOT NULL
+            );
+            """
+        )
+
+        create_production_schema(
+            self.connection
+        )
+
+        create_scheduler_schema(
+            self.connection
+        )
+
+        self.connection.execute(
+            """
+            INSERT INTO cases (
+                case_id,
+                title
+            )
+            VALUES (?, ?)
+            """,
+            (
+                "case-001",
+                "Test Case",
+            ),
+        )
 
         self.connection.execute(
             """
