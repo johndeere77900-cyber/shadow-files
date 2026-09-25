@@ -1,16 +1,18 @@
 """
 Shadow Files database migration layer.
 
-Phase 7 established schema version 1.
+The migration system upgrades the persistent database without
+destructively replacing existing case, evidence, claim, source,
+or audit records.
 
-Phase 11 upgrades version 1 databases to schema version 2 by adding
-the complete case/evidence memory tables.
-
-Migrations are explicit and non-destructive.
+Phase 12 adds investigation and research-memory tables.
 """
 
 import sqlite3
 
+from database.investigation_schema import (
+    create_investigation_schema,
+)
 from database.schema import (
     SCHEMA_VERSION,
     create_schema,
@@ -47,13 +49,11 @@ def migrate(
     connection: sqlite3.Connection,
 ) -> int:
     """
-    Bring the database to the current schema version.
+    Bring the database to the current Phase 7/11 schema.
 
-    A new database receives the complete current schema.
-
-    A version 1 database is upgraded by creating the Phase 11
-    evidence-memory tables and indexes that do not already exist.
-    Existing records are preserved.
+    Phase 12 investigation tables are intentionally created separately
+    by create_investigation_schema() so the core schema version remains
+    compatible with the existing Phase 11 database contract.
     """
 
     current_version = get_schema_version(connection)
@@ -179,3 +179,16 @@ def migrate(
         f"No migration path exists from version "
         f"{current_version} to {SCHEMA_VERSION}."
     )
+
+
+def migrate_investigation_schema(
+    connection: sqlite3.Connection,
+) -> None:
+    """
+    Create the Phase 12 investigation schema.
+
+    This operation is idempotent and preserves all existing records.
+    """
+
+    migrate(connection)
+    create_investigation_schema(connection)
