@@ -179,6 +179,7 @@ class TestPhase15Integration(unittest.TestCase):
         )
 
         publication = service.create_publication(
+            production_id="prod-001",
             package=self.package,
             mode=PublicationMode.HUMAN,
         )
@@ -226,6 +227,7 @@ class TestPhase15Integration(unittest.TestCase):
             publication.status,
             PublicationStatus.APPROVED,
         )
+
         self.assertIsNotNone(
             publication.approved_at
         )
@@ -245,6 +247,7 @@ class TestPhase15Integration(unittest.TestCase):
             publication.status,
             PublicationStatus.UPLOADED,
         )
+
         self.assertEqual(
             publication.youtube_video_id,
             "human-video-001",
@@ -263,6 +266,7 @@ class TestPhase15Integration(unittest.TestCase):
             publication.status,
             PublicationStatus.SCHEDULED,
         )
+
         self.assertEqual(
             publication.scheduled_at,
             scheduled_at,
@@ -281,6 +285,7 @@ class TestPhase15Integration(unittest.TestCase):
             publication.status,
             PublicationStatus.PUBLISHED,
         )
+
         self.assertEqual(
             publication.published_at,
             published_at,
@@ -305,6 +310,7 @@ class TestPhase15Integration(unittest.TestCase):
         )
 
         publication = service.create_publication(
+            production_id="prod-001",
             package=self.package,
             mode=PublicationMode.YOUTUBE_API,
         )
@@ -332,14 +338,17 @@ class TestPhase15Integration(unittest.TestCase):
             publication.status,
             PublicationStatus.UPLOADED,
         )
+
         self.assertEqual(
             publication.youtube_video_id,
             "youtube-test-001",
         )
+
         self.assertEqual(
             publication.youtube_url,
             "https://youtube.example/watch?v=youtube-test-001",
         )
+
         self.assertIsNotNone(
             publication.uploaded_at
         )
@@ -352,6 +361,7 @@ class TestPhase15Integration(unittest.TestCase):
         )
 
         publication = service.create_publication(
+            production_id="prod-001",
             package=self.package,
             mode=PublicationMode.YOUTUBE_API,
         )
@@ -379,6 +389,7 @@ class TestPhase15Integration(unittest.TestCase):
             publication.status,
             PublicationStatus.FAILED,
         )
+
         self.assertEqual(
             publication.error_message,
             "Simulated upload failure.",
@@ -391,6 +402,7 @@ class TestPhase15Integration(unittest.TestCase):
         )
 
         publication = service.create_publication(
+            production_id="prod-001",
             package=self.package,
             mode=PublicationMode.HUMAN,
         )
@@ -439,6 +451,7 @@ class TestPhase15Integration(unittest.TestCase):
         )
 
         publication = service.create_publication(
+            production_id="prod-001",
             package=self.package,
             mode=PublicationMode.YOUTUBE_API,
         )
@@ -465,6 +478,7 @@ class TestPhase15Integration(unittest.TestCase):
         )
 
         publication = service.create_publication(
+            production_id="prod-001",
             package=self.package,
             mode=PublicationMode.HUMAN,
         )
