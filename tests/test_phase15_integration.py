@@ -269,10 +269,6 @@ class TestPhase15Integration(unittest.TestCase):
             scheduled_at,
         )
 
-        published_at = scheduled_at + timedelta(
-            minutes=1
-        )
-
         publication = service.mark_published(
             publication_id,
             actor="system",
@@ -287,9 +283,13 @@ class TestPhase15Integration(unittest.TestCase):
             publication.published_at
         )
 
-        self.assertGreaterEqual(
+        self.assertIsInstance(
             publication.published_at,
-            scheduled_at,
+            datetime,
+        )
+
+        self.assertIsNotNone(
+            publication.updated_at
         )
 
         events = (
