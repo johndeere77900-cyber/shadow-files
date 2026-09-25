@@ -102,10 +102,11 @@ class Phase14IntegrationTests(unittest.TestCase):
                 title,
                 content_type,
                 status,
+                notes,
                 created_at,
                 updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 "prod-001",
@@ -114,6 +115,7 @@ class Phase14IntegrationTests(unittest.TestCase):
                 "Shadow Files Test Episode",
                 "STORY",
                 "NOT_STARTED",
+                "",
                 "2026-10-01T10:00:00+00:00",
                 "2026-10-01T10:00:00+00:00",
             ),
