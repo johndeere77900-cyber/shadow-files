@@ -33,10 +33,9 @@ class InvestigationCascadeTests(unittest.TestCase):
                 title,
                 state,
                 created_at,
-                updated_at,
-                summary
+                updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?)
             """,
             (
                 "CASE-CASCADE",
@@ -44,7 +43,6 @@ class InvestigationCascadeTests(unittest.TestCase):
                 "IDEA",
                 "2026-01-01T00:00:00+00:00",
                 "2026-01-01T00:00:00+00:00",
-                "",
             ),
         )
 
