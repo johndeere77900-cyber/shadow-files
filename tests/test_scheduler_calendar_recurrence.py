@@ -38,7 +38,11 @@ class SchedulerCalendarRecurrenceTests(unittest.TestCase):
             tzinfo=UTC,
         )
 
-    def _slot(self, scheduled_for, status=ScheduleStatus.PLANNED):
+    def _slot(
+        self,
+        scheduled_for,
+        status=ScheduleStatus.PLANNED,
+    ):
         return ScheduleSlot(
             schedule_id="schedule-001",
             production_id="prod-001",
@@ -81,19 +85,14 @@ class SchedulerCalendarRecurrenceTests(unittest.TestCase):
 
     def test_is_due_when_scheduled_time_has_arrived(self):
         scheduled_for = self._start()
-
         slot = self._slot(scheduled_for)
 
         self.assertTrue(
-            is_due(
-                slot,
-                scheduled_for,
-            )
+            is_due(slot, scheduled_for)
         )
 
     def test_is_not_due_before_scheduled_time(self):
         scheduled_for = self._start()
-
         slot = self._slot(scheduled_for)
 
         self.assertFalse(
@@ -120,7 +119,6 @@ class SchedulerCalendarRecurrenceTests(unittest.TestCase):
 
     def test_is_overdue_after_scheduled_time(self):
         scheduled_for = self._start()
-
         slot = self._slot(scheduled_for)
 
         self.assertTrue(
@@ -168,7 +166,7 @@ class SchedulerCalendarRecurrenceTests(unittest.TestCase):
 
         deadline = calculate_deadline(
             scheduled_for,
-            24,
+            1440,
         )
 
         self.assertEqual(
