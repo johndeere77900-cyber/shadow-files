@@ -27,15 +27,40 @@ class SchedulerRepositoryServiceTests(unittest.TestCase):
 
     def setUp(self):
         self.connection = sqlite3.connect(":memory:")
-        self.connection.execute("PRAGMA foreign_keys = ON")
+        self.connection.execute(
+            "PRAGMA foreign_keys = ON"
+        )
+
+        self.connection.executescript(
+            """
+            CREATE TABLE cases (
+                case_id TEXT PRIMARY KEY,
+                title TEXT NOT NULL
+            );
+
+            CREATE TABLE investigations (
+                investigation_id TEXT PRIMARY KEY,
+                case_id TEXT NOT NULL,
+                status TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (case_id)
+                    REFERENCES cases(case_id)
+                    ON DELETE CASCADE
+            );
+            """
+        )
 
         create_production_schema(
             self.connection
         )
+
         create_scheduler_schema(
             self.connection
         )
 
+        self._create_case()
+        self._create_investigation()
         self._create_production()
 
         self.repository = ScheduleRepository(
@@ -49,26 +74,70 @@ class SchedulerRepositoryServiceTests(unittest.TestCase):
     def tearDown(self):
         self.connection.close()
 
+    def _create_case(self):
+        self.connection.execute(
+            """
+            INSERT INTO cases (
+                case_id,
+                title
+            )
+            VALUES (?, ?)
+            """,
+            (
+                "case-001",
+                "Test Case",
+            ),
+        )
+
+        self.connection.commit()
+
+    def _create_investigation(self):
+        self.connection.execute(
+            """
+            INSERT INTO investigations (
+                investigation_id,
+                case_id,
+                status,
+                created_at,
+                updated_at
+            )
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                "investigation-001",
+                "case-001",
+                "NOT_STARTED",
+                "2026-10-01T10:00:00+00:00",
+                "2026-10-01T10:00:00+00:00",
+            ),
+        )
+
+        self.connection.commit()
+
     def _create_production(self):
         self.connection.execute(
             """
             INSERT INTO productions (
                 production_id,
                 case_id,
+                investigation_id,
                 title,
                 content_type,
                 status,
+                notes,
                 created_at,
                 updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 "prod-001",
                 "case-001",
+                "investigation-001",
                 "Test Production",
                 "STORY",
                 "NOT_STARTED",
+                "",
                 "2026-10-01T10:00:00+00:00",
                 "2026-10-01T10:00:00+00:00",
             ),
