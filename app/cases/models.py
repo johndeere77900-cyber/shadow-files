@@ -49,4 +49,3 @@ class Case:
             raise ValueError(
                 "Case updated_at cannot precede created_at."
             )
-``
