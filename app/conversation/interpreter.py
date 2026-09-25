@@ -8,12 +8,13 @@ ConversationInterpreter interface. It must not maintain a second set of
 natural-language parsing rules.
 """
 
-from app.conversation.intents import IntentParser
 from app.conversation.models import (
     ConversationIntent,
     ConversationIntentResult,
     ConversationMode,
 )
+from app.conversation.intents import IntentType
+from app.conversation.parser import IntentParser
 
 
 class ConversationInterpreter:
@@ -39,46 +40,46 @@ class ConversationInterpreter:
         intent = self._parser.parse(text)
 
         mapping = {
-            "STATUS": (
+            IntentType.STATUS: (
                 ConversationMode.INFORMATION_REQUEST,
                 ConversationIntent.CHECK_STATUS,
             ),
-            "CASE_STATUS": (
+            IntentType.CASE_STATUS: (
                 ConversationMode.INFORMATION_REQUEST,
                 ConversationIntent.CHECK_STATUS,
             ),
-            "CONTINUE_CASE": (
+            IntentType.CONTINUE_CASE: (
                 ConversationMode.EXECUTION_REQUEST,
                 ConversationIntent.CONTINUE_WORK,
             ),
-            "SCHEDULE_CHANGE": (
+            IntentType.SCHEDULE_CHANGE: (
                 ConversationMode.EXECUTION_REQUEST,
                 ConversationIntent.CHANGE_SCHEDULE,
             ),
-            "RESEARCH": (
+            IntentType.RESEARCH: (
                 ConversationMode.EXECUTION_REQUEST,
                 ConversationIntent.START_RESEARCH,
             ),
-            "ANALYZE": (
+            IntentType.ANALYZE: (
                 ConversationMode.EXECUTION_REQUEST,
                 ConversationIntent.DISCUSS_CASE,
             ),
-            "SHOW_SCHEDULE": (
+            IntentType.SHOW_SCHEDULE: (
                 ConversationMode.INFORMATION_REQUEST,
                 ConversationIntent.CHECK_STATUS,
             ),
-            "HELP": (
+            IntentType.HELP: (
                 ConversationMode.INFORMATION_REQUEST,
                 ConversationIntent.ASK_CAPABILITIES,
             ),
-            "UNKNOWN": (
+            IntentType.UNKNOWN: (
                 ConversationMode.CLARIFICATION_REQUIRED,
                 ConversationIntent.UNKNOWN,
             ),
         }
 
         mode, conversation_intent = mapping.get(
-            intent.intent_type.value,
+            intent.intent_type,
             (
                 ConversationMode.CONVERSATION,
                 ConversationIntent.GENERAL_CONVERSATION,
