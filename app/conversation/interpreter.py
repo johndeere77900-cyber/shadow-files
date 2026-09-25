@@ -53,7 +53,7 @@ class ConversationInterpreter:
             ),
             "SCHEDULE_CHANGE": (
                 ConversationMode.EXECUTION_REQUEST,
-                ConversationIntent.CONTINUE_WORK,
+                ConversationIntent.CHANGE_SCHEDULE,
             ),
             "RESEARCH": (
                 ConversationMode.EXECUTION_REQUEST,
