@@ -31,6 +31,7 @@ class ConversationIntent(str, Enum):
     START_RESEARCH = "START_RESEARCH"
     CHECK_STATUS = "CHECK_STATUS"
     CONTINUE_WORK = "CONTINUE_WORK"
+    CHANGE_SCHEDULE = "CHANGE_SCHEDULE"
     UNKNOWN = "UNKNOWN"
 
 
@@ -68,8 +69,6 @@ class ConversationContext:
             )
         )
 
-        # Keep enough recent context for natural conversation without
-        # allowing the in-memory context to grow without limit.
         if len(self.turns) > 50:
             del self.turns[:-50]
 
@@ -121,4 +120,4 @@ class ConversationIntentResult:
         if not 0.0 <= self.confidence <= 1.0:
             raise ValueError(
                 "confidence must be between 0.0 and 1.0."
-  )
+        )
