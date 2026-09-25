@@ -2,7 +2,7 @@
 Shadow Files Phase 12 migration-preservation tests.
 
 These tests verify that adding the investigation schema does not
-destroy or alter existing case, evidence, or audit data.
+destroy or alter existing case or audit data.
 """
 
 import sqlite3
@@ -33,10 +33,9 @@ class InvestigationMigrationTests(unittest.TestCase):
                 title,
                 state,
                 created_at,
-                updated_at,
-                summary
+                updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?)
             """,
             (
                 "CASE-001",
@@ -44,7 +43,6 @@ class InvestigationMigrationTests(unittest.TestCase):
                 "IDEA",
                 "2026-01-01T00:00:00+00:00",
                 "2026-01-01T00:00:00+00:00",
-                "Existing case record.",
             ),
         )
         self.connection.commit()
@@ -57,7 +55,8 @@ class InvestigationMigrationTests(unittest.TestCase):
                 case_id,
                 title,
                 state,
-                summary
+                created_at,
+                updated_at
             FROM cases
             WHERE case_id = ?
             """,
@@ -69,8 +68,12 @@ class InvestigationMigrationTests(unittest.TestCase):
         self.assertEqual(row["title"], "Existing Case")
         self.assertEqual(row["state"], "IDEA")
         self.assertEqual(
-            row["summary"],
-            "Existing case record.",
+            row["created_at"],
+            "2026-01-01T00:00:00+00:00",
+        )
+        self.assertEqual(
+            row["updated_at"],
+            "2026-01-01T00:00:00+00:00",
         )
 
     def test_existing_audit_table_survives_migration(self) -> None:
@@ -97,10 +100,9 @@ class InvestigationMigrationTests(unittest.TestCase):
                 title,
                 state,
                 created_at,
-                updated_at,
-                summary
+                updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?)
             """,
             (
                 "CASE-002",
@@ -108,7 +110,6 @@ class InvestigationMigrationTests(unittest.TestCase):
                 "IDEA",
                 "2026-01-01T00:00:00+00:00",
                 "2026-01-01T00:00:00+00:00",
-                "",
             ),
         )
         self.connection.commit()
