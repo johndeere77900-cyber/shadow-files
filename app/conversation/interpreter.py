@@ -51,6 +51,10 @@ class ConversationInterpreter:
                 ConversationMode.EXECUTION_REQUEST,
                 ConversationIntent.CONTINUE_WORK,
             ),
+            "SCHEDULE_CHANGE": (
+                ConversationMode.EXECUTION_REQUEST,
+                ConversationIntent.CONTINUE_WORK,
+            ),
             "RESEARCH": (
                 ConversationMode.EXECUTION_REQUEST,
                 ConversationIntent.START_RESEARCH,
@@ -87,4 +91,4 @@ class ConversationInterpreter:
             confidence=intent.confidence,
             target=intent.target,
             parameters=intent.parameters,
-    )
+        )
