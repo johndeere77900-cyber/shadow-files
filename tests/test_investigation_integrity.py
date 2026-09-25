@@ -12,7 +12,6 @@ from datetime import datetime, timezone
 
 from app.investigation.models import (
     Investigation,
-    ResearchItem,
     ResearchItemType,
     ResearchStatus,
 )
@@ -41,10 +40,9 @@ class InvestigationIntegrityTests(unittest.TestCase):
                 title,
                 state,
                 created_at,
-                updated_at,
-                summary
+                updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?)
             """,
             (
                 "CASE-INTEGRITY",
@@ -52,7 +50,6 @@ class InvestigationIntegrityTests(unittest.TestCase):
                 "IDEA",
                 "2026-01-01T00:00:00+00:00",
                 "2026-01-01T00:00:00+00:00",
-                "",
             ),
         )
         self.connection.commit()
