@@ -1,13 +1,15 @@
 """
-Shadow Files repository layer.
+Shadow Files database repository.
 
-This module provides controlled persistence operations for cases, jobs,
-and audit events. Higher-level Shadow Files components should use this
-repository instead of writing SQL directly.
+Phase 7 established persistence for cases, jobs, and audit events.
+
+Phase 11 keeps that repository compatible while allowing case creation
+through explicit case fields used by the existing regression suite.
 """
 
 import sqlite3
-from typing import List, Optional
+from datetime import datetime
+from typing import Optional
 
 from database.models import (
     AuditEventRecord,
@@ -17,22 +19,37 @@ from database.models import (
 
 
 class DatabaseRepository:
-    """Persistent repository for Shadow Files foundation records."""
+    """Persistence boundary for core Shadow Files records."""
 
-    def __init__(self, connection: sqlite3.Connection):
-        self.connection = connection
+    def __init__(
+        self,
+        connection: sqlite3.Connection,
+    ) -> None:
+        self._connection = connection
 
     # ------------------------------------------------------------------
-    # CASES
+    # Cases
     # ------------------------------------------------------------------
 
     def create_case(
         self,
-        case: CaseRecord,
-    ) -> None:
-        """Create a new case."""
+        case_id: str,
+        title: str,
+        state: str,
+        created_at: datetime,
+        updated_at: datetime,
+    ) -> CaseRecord:
+        """Create and return a case record."""
 
-        self.connection.execute(
+        record = CaseRecord(
+            case_id=case_id,
+            title=title,
+            state=state,
+            created_at=created_at,
+            updated_at=updated_at,
+        )
+
+        self._connection.execute(
             """
             INSERT INTO cases (
                 case_id,
@@ -44,15 +61,16 @@ class DatabaseRepository:
             VALUES (?, ?, ?, ?, ?)
             """,
             (
-                case.case_id,
-                case.title,
-                case.state,
-                case.created_at,
-                case.updated_at,
+                record.case_id,
+                record.title,
+                record.state,
+                record.created_at.isoformat(),
+                record.updated_at.isoformat(),
             ),
         )
 
-        self.connection.commit()
+        self._connection.commit()
+        return record
 
     def get_case(
         self,
@@ -60,7 +78,7 @@ class DatabaseRepository:
     ) -> Optional[CaseRecord]:
         """Retrieve a case by ID."""
 
-        row = self.connection.execute(
+        row = self._connection.execute(
             """
             SELECT
                 case_id,
@@ -81,19 +99,30 @@ class DatabaseRepository:
             case_id=row["case_id"],
             title=row["title"],
             state=row["state"],
-            created_at=row["created_at"],
-            updated_at=row["updated_at"],
+            created_at=datetime.fromisoformat(
+                row["created_at"]
+            ),
+            updated_at=datetime.fromisoformat(
+                row["updated_at"]
+            ),
         )
 
     def update_case_state(
         self,
         case_id: str,
         state: str,
-        updated_at: str,
-    ) -> None:
-        """Update the current state of a case."""
+        updated_at: datetime,
+    ) -> CaseRecord:
+        """Update a case state and return the updated record."""
 
-        cursor = self.connection.execute(
+        existing = self.get_case(case_id)
+
+        if existing is None:
+            raise KeyError(
+                f"Case '{case_id}' does not exist."
+            )
+
+        self._connection.execute(
             """
             UPDATE cases
             SET
@@ -103,29 +132,42 @@ class DatabaseRepository:
             """,
             (
                 state,
-                updated_at,
+                updated_at.isoformat(),
                 case_id,
             ),
         )
 
-        if cursor.rowcount == 0:
-            raise KeyError(
-                f"Case not found: {case_id}"
-            )
+        self._connection.commit()
 
-        self.connection.commit()
+        return CaseRecord(
+            case_id=existing.case_id,
+            title=existing.title,
+            state=state,
+            created_at=existing.created_at,
+            updated_at=updated_at,
+        )
 
     # ------------------------------------------------------------------
-    # JOBS
+    # Jobs
     # ------------------------------------------------------------------
 
     def create_job(
         self,
-        job: JobRecord,
-    ) -> None:
-        """Create a new job."""
+        job_id: str,
+        operation: str,
+        status: str,
+        created_at: datetime,
+    ) -> JobRecord:
+        """Create and return a job record."""
 
-        self.connection.execute(
+        record = JobRecord(
+            job_id=job_id,
+            operation=operation,
+            status=status,
+            created_at=created_at,
+        )
+
+        self._connection.execute(
             """
             INSERT INTO jobs (
                 job_id,
@@ -136,14 +178,15 @@ class DatabaseRepository:
             VALUES (?, ?, ?, ?)
             """,
             (
-                job.job_id,
-                job.operation,
-                job.status,
-                job.created_at,
+                record.job_id,
+                record.operation,
+                record.status,
+                record.created_at.isoformat(),
             ),
         )
 
-        self.connection.commit()
+        self._connection.commit()
+        return record
 
     def get_job(
         self,
@@ -151,7 +194,7 @@ class DatabaseRepository:
     ) -> Optional[JobRecord]:
         """Retrieve a job by ID."""
 
-        row = self.connection.execute(
+        row = self._connection.execute(
             """
             SELECT
                 job_id,
@@ -171,17 +214,26 @@ class DatabaseRepository:
             job_id=row["job_id"],
             operation=row["operation"],
             status=row["status"],
-            created_at=row["created_at"],
+            created_at=datetime.fromisoformat(
+                row["created_at"]
+            ),
         )
 
     def update_job_status(
         self,
         job_id: str,
         status: str,
-    ) -> None:
-        """Update the status of a job."""
+    ) -> JobRecord:
+        """Update a job status and return the updated record."""
 
-        cursor = self.connection.execute(
+        existing = self.get_job(job_id)
+
+        if existing is None:
+            raise KeyError(
+                f"Job '{job_id}' does not exist."
+            )
+
+        self._connection.execute(
             """
             UPDATE jobs
             SET status = ?
@@ -193,24 +245,26 @@ class DatabaseRepository:
             ),
         )
 
-        if cursor.rowcount == 0:
-            raise KeyError(
-                f"Job not found: {job_id}"
-            )
+        self._connection.commit()
 
-        self.connection.commit()
+        return JobRecord(
+            job_id=existing.job_id,
+            operation=existing.operation,
+            status=status,
+            created_at=existing.created_at,
+        )
 
     # ------------------------------------------------------------------
-    # AUDIT EVENTS
+    # Audit events
     # ------------------------------------------------------------------
 
     def create_audit_event(
         self,
         event: AuditEventRecord,
-    ) -> None:
-        """Persist an audit event."""
+    ) -> AuditEventRecord:
+        """Persist and return an audit event."""
 
-        self.connection.execute(
+        self._connection.execute(
             """
             INSERT INTO audit_events (
                 event_id,
@@ -230,7 +284,7 @@ class DatabaseRepository:
             """,
             (
                 event.event_id,
-                event.timestamp,
+                event.timestamp.isoformat(),
                 event.actor,
                 event.intent,
                 event.command,
@@ -244,7 +298,8 @@ class DatabaseRepository:
             ),
         )
 
-        self.connection.commit()
+        self._connection.commit()
+        return event
 
     def get_audit_event(
         self,
@@ -252,7 +307,7 @@ class DatabaseRepository:
     ) -> Optional[AuditEventRecord]:
         """Retrieve an audit event by ID."""
 
-        row = self.connection.execute(
+        row = self._connection.execute(
             """
             SELECT
                 event_id,
@@ -278,7 +333,9 @@ class DatabaseRepository:
 
         return AuditEventRecord(
             event_id=row["event_id"],
-            timestamp=row["timestamp"],
+            timestamp=datetime.fromisoformat(
+                row["timestamp"]
+            ),
             actor=row["actor"],
             intent=row["intent"],
             command=row["command"],
@@ -294,11 +351,11 @@ class DatabaseRepository:
     def list_audit_events(
         self,
         job_id: Optional[str] = None,
-    ) -> List[AuditEventRecord]:
+    ) -> list[AuditEventRecord]:
         """Return audit events, optionally filtered by job ID."""
 
         if job_id is None:
-            rows = self.connection.execute(
+            rows = self._connection.execute(
                 """
                 SELECT
                     event_id,
@@ -318,7 +375,7 @@ class DatabaseRepository:
                 """
             ).fetchall()
         else:
-            rows = self.connection.execute(
+            rows = self._connection.execute(
                 """
                 SELECT
                     event_id,
@@ -343,7 +400,9 @@ class DatabaseRepository:
         return [
             AuditEventRecord(
                 event_id=row["event_id"],
-                timestamp=row["timestamp"],
+                timestamp=datetime.fromisoformat(
+                    row["timestamp"]
+                ),
                 actor=row["actor"],
                 intent=row["intent"],
                 command=row["command"],
@@ -356,4 +415,4 @@ class DatabaseRepository:
                 job_id=row["job_id"],
             )
             for row in rows
-      ]
+        ]
