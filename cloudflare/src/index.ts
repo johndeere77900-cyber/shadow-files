@@ -1,5 +1,11 @@
+import {
+  handleTelegramWebhook,
+} from "./webhook";
+
 export interface Env {
   SHADOW_FILES_MODE: string;
+  TELEGRAM_BOT_TOKEN: string;
+  TELEGRAM_AUTHORIZED_CHAT_ID: string;
 }
 
 export default {
@@ -9,22 +15,10 @@ export default {
   ): Promise<Response> {
     const url = new URL(request.url);
 
-    if (request.method !== "GET") {
-      return new Response(
-        JSON.stringify({
-          ok: false,
-          error: "Method not allowed.",
-        }),
-        {
-          status: 405,
-          headers: {
-            "content-type": "application/json",
-          },
-        },
-      );
-    }
-
-    if (url.pathname === "/") {
+    if (
+      request.method === "GET" &&
+      url.pathname === "/"
+    ) {
       return new Response(
         JSON.stringify({
           ok: true,
@@ -38,6 +32,15 @@ export default {
             "content-type": "application/json",
           },
         },
+      );
+    }
+
+    if (
+      url.pathname === "/telegram/webhook"
+    ) {
+      return handleTelegramWebhook(
+        request,
+        env,
       );
     }
 
