@@ -225,15 +225,10 @@ class TestPhase15Integration(unittest.TestCase):
             publication.approved_at
         )
 
-        uploaded_at = datetime.now(
-            timezone.utc
-        )
-
         publication = service.mark_human_uploaded(
             publication_id,
             youtube_video_id="human-video-001",
             youtube_url="https://youtube.example/human-video-001",
-            uploaded_at=uploaded_at,
         )
 
         self.assertEqual(
@@ -244,6 +239,15 @@ class TestPhase15Integration(unittest.TestCase):
         self.assertEqual(
             publication.youtube_video_id,
             "human-video-001",
+        )
+
+        self.assertEqual(
+            publication.youtube_url,
+            "https://youtube.example/human-video-001",
+        )
+
+        self.assertIsNotNone(
+            publication.uploaded_at
         )
 
         scheduled_at = datetime.now(
