@@ -16,6 +16,7 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from app.publishing.errors import UploadError
 from app.publishing.events import PublicationEventRepository
 from app.publishing.models import (
     PublicationMode,
@@ -209,18 +210,10 @@ class TestPhase15Integration(unittest.TestCase):
             PublicationStatus.PENDING_APPROVAL,
         )
 
-        approval = service.approve(
+        publication = service.approve(
             publication_id,
             approved_by="boss",
             note="Human approval granted.",
-        )
-
-        self.assertTrue(
-            approval.approved
-        )
-
-        publication = service.get(
-            publication_id
         )
 
         self.assertEqual(
@@ -381,7 +374,17 @@ class TestPhase15Integration(unittest.TestCase):
             approved_by="boss",
         )
 
-        publication = service.upload(
+        with self.assertRaises(UploadError) as context:
+            service.upload(
+                publication_id
+            )
+
+        self.assertEqual(
+            str(context.exception),
+            "Simulated upload failure.",
+        )
+
+        publication = service.get(
             publication_id
         )
 
@@ -439,7 +442,12 @@ class TestPhase15Integration(unittest.TestCase):
         )
 
         self.assertIn(
-            "STATUS_CHANGED",
+            "PACKAGE_READY",
+            event_types,
+        )
+
+        self.assertIn(
+            "APPROVAL_REQUESTED",
             event_types,
         )
 
