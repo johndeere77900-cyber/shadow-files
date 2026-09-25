@@ -8,6 +8,7 @@ Business execution remains outside the transport layer.
 """
 
 from app.telegram.config import TelegramConfig
+from app.telegram.messages import OutgoingMessage
 from app.telegram.router import TelegramRouter
 from app.telegram.transport import TelegramBotTransport
 
@@ -55,18 +56,16 @@ def main() -> None:
             transport.send(response)
             continue
 
-        response_text = (
-            "Shadow Files received your message: "
-            f"{route.message.text}"
+        response = OutgoingMessage(
+            chat_id=route.message.chat_id,
+            text=(
+                "Shadow Files received your message: "
+                f"{route.message.text}"
+            ),
+            reply_to_message_id=route.message.message_id,
         )
 
-        transport.send(
-            message=type(
-                "OutgoingMessageFactory",
-                (),
-                {},
-            )
-        )
+        transport.send(response)
 
 
 if __name__ == "__main__":
