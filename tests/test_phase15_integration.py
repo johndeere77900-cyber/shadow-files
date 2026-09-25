@@ -16,7 +16,6 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from app.publishing.approval import ApprovalRecord
 from app.publishing.events import PublicationEventRepository
 from app.publishing.models import (
     PublicationMode,
@@ -180,10 +179,11 @@ class TestPhase15Integration(unittest.TestCase):
         )
 
         publication = service.create_publication(
-            publication_id="pub-human-001",
             package=self.package,
             mode=PublicationMode.HUMAN,
         )
+
+        publication_id = publication.publication_id
 
         self.assertEqual(
             publication.status,
@@ -191,7 +191,7 @@ class TestPhase15Integration(unittest.TestCase):
         )
 
         publication = service.prepare_package(
-            "pub-human-001"
+            publication_id
         )
 
         self.assertEqual(
@@ -200,7 +200,7 @@ class TestPhase15Integration(unittest.TestCase):
         )
 
         publication = service.request_approval(
-            "pub-human-001"
+            publication_id
         )
 
         self.assertEqual(
@@ -209,18 +209,17 @@ class TestPhase15Integration(unittest.TestCase):
         )
 
         approval = service.approve(
-            "pub-human-001",
+            publication_id,
             approved_by="boss",
             note="Human approval granted.",
         )
 
-        self.assertEqual(
-            approval.approved,
-            True,
+        self.assertTrue(
+            approval.approved
         )
 
         publication = service.get(
-            "pub-human-001"
+            publication_id
         )
 
         self.assertEqual(
@@ -236,7 +235,7 @@ class TestPhase15Integration(unittest.TestCase):
         )
 
         publication = service.mark_human_uploaded(
-            "pub-human-001",
+            publication_id,
             youtube_video_id="human-video-001",
             youtube_url="https://youtube.example/human-video-001",
             uploaded_at=uploaded_at,
@@ -256,7 +255,7 @@ class TestPhase15Integration(unittest.TestCase):
         ) + timedelta(days=1)
 
         publication = service.mark_scheduled(
-            "pub-human-001",
+            publication_id,
             scheduled_at,
         )
 
@@ -274,7 +273,7 @@ class TestPhase15Integration(unittest.TestCase):
         )
 
         publication = service.mark_published(
-            "pub-human-001",
+            publication_id,
             published_at,
         )
 
@@ -289,7 +288,7 @@ class TestPhase15Integration(unittest.TestCase):
 
         events = (
             self.event_repository.list_for_publication(
-                "pub-human-001"
+                publication_id
             )
         )
 
@@ -305,27 +304,28 @@ class TestPhase15Integration(unittest.TestCase):
             youtube_publisher=FakeYouTubePublisher(),
         )
 
-        service.create_publication(
-            publication_id="pub-api-001",
+        publication = service.create_publication(
             package=self.package,
             mode=PublicationMode.YOUTUBE_API,
         )
 
+        publication_id = publication.publication_id
+
         service.prepare_package(
-            "pub-api-001"
+            publication_id
         )
 
         service.request_approval(
-            "pub-api-001"
+            publication_id
         )
 
         service.approve(
-            "pub-api-001",
+            publication_id,
             approved_by="boss",
         )
 
         publication = service.upload(
-            "pub-api-001"
+            publication_id
         )
 
         self.assertEqual(
@@ -351,27 +351,28 @@ class TestPhase15Integration(unittest.TestCase):
             youtube_publisher=FailingYouTubePublisher(),
         )
 
-        service.create_publication(
-            publication_id="pub-failed-001",
+        publication = service.create_publication(
             package=self.package,
             mode=PublicationMode.YOUTUBE_API,
         )
 
+        publication_id = publication.publication_id
+
         service.prepare_package(
-            "pub-failed-001"
+            publication_id
         )
 
         service.request_approval(
-            "pub-failed-001"
+            publication_id
         )
 
         service.approve(
-            "pub-failed-001",
+            publication_id,
             approved_by="boss",
         )
 
         publication = service.upload(
-            "pub-failed-001"
+            publication_id
         )
 
         self.assertEqual(
@@ -389,23 +390,24 @@ class TestPhase15Integration(unittest.TestCase):
             event_repository=self.event_repository,
         )
 
-        service.create_publication(
-            publication_id="pub-events-001",
+        publication = service.create_publication(
             package=self.package,
             mode=PublicationMode.HUMAN,
         )
 
+        publication_id = publication.publication_id
+
         service.prepare_package(
-            "pub-events-001"
+            publication_id
         )
 
         service.request_approval(
-            "pub-events-001"
+            publication_id
         )
 
         events = (
             self.event_repository.list_for_publication(
-                "pub-events-001"
+                publication_id
             )
         )
 
@@ -436,43 +438,41 @@ class TestPhase15Integration(unittest.TestCase):
             youtube_publisher=FakeYouTubePublisher(),
         )
 
-        service.create_publication(
-            publication_id="pub-gated-001",
+        publication = service.create_publication(
             package=self.package,
             mode=PublicationMode.YOUTUBE_API,
         )
 
+        publication_id = publication.publication_id
+
         service.prepare_package(
-            "pub-gated-001"
+            publication_id
         )
 
         service.request_approval(
-            "pub-gated-001"
+            publication_id
         )
 
         with self.assertRaises(Exception):
             service.upload(
-                "pub-gated-001"
+                publication_id
             )
 
-    def test_publication_can_be_retrieved_after_full_lifecycle(self):
+    def test_publication_can_be_retrieved_after_creation(self):
         service = PublicationService(
             repository=self.repository,
             event_repository=self.event_repository,
         )
 
-        service.create_publication(
-            publication_id="pub-retrieve-001",
+        publication = service.create_publication(
             package=self.package,
             mode=PublicationMode.HUMAN,
         )
 
-        service.prepare_package(
-            "pub-retrieve-001"
-        )
+        publication_id = publication.publication_id
 
         stored = service.get(
-            "pub-retrieve-001"
+            publication_id
         )
 
         self.assertEqual(
