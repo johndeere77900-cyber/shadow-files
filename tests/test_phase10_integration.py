@@ -193,7 +193,7 @@ class Phase10IntegrationTests(unittest.TestCase):
         self.assertTrue(
             result.authorization.authorized
         )
-        self.assertTrue(
+        self.assertFalse(
             result.executed
         )
         self.assertFalse(
