@@ -2,26 +2,25 @@
 Shadow Files application entry point.
 
 This module provides the top-level executable entry point for running
-a controlled Shadow Files command from the command line.
+a controlled Shadow Files command.
 
 Execution path:
 
 CLI input
+    -> application composition
     -> CommandService
     -> CommandPipeline
     -> conversation parsing
     -> command validation
     -> authorization
     -> command dispatch
-
-Business handlers are registered by later application layers.
-This entry point does not bypass the command safety boundary.
+    -> registered business handler
 """
 
 import argparse
 import sys
 
-from app.commands.service import CommandService
+from app.application import build_command_service
 from shadow_core.authorization import Actor
 
 
@@ -56,9 +55,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     """
-    Execute one Shadow Files command through the controlled service.
+    Execute one Shadow Files command through the configured application.
 
-    Returns a process exit code:
+    Returns:
         0 = successful execution
         1 = command rejected or failed
     """
@@ -73,7 +72,7 @@ def main(argv: list[str] | None = None) -> int:
 
     command_text = " ".join(args.command)
 
-    service = CommandService()
+    service = build_command_service()
 
     response = service.execute(
         actor,
@@ -88,6 +87,15 @@ def main(argv: list[str] | None = None) -> int:
                 f"Command: "
                 f"{response.result.command.command_type.value}"
             )
+
+            if response.result.dispatch is not None:
+                data = response.result.dispatch.data
+
+                if hasattr(data, "result_count"):
+                    print(
+                        f"Research results: "
+                        f"{data.result_count}"
+                    )
 
         return 0
 
