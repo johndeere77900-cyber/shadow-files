@@ -128,6 +128,10 @@ class CommandOrchestrator:
     ) -> OrchestrationResult:
         """
         Execute a command only after all validation boundaries pass.
+
+        The executed flag represents successful dispatch execution.
+        A dispatch attempt that returns success=False is therefore not
+        reported as executed.
         """
 
         intent, command, validation = self.prepare(text)
@@ -141,5 +145,5 @@ class CommandOrchestrator:
             command=command,
             validation=validation,
             dispatch=dispatch_result,
-            executed=True,
-  )
+            executed=dispatch_result.success,
+    )
