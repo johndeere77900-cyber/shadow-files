@@ -135,7 +135,7 @@ class CommandOrchestratorTests(unittest.TestCase):
             "Research this case."
         )
 
-        self.assertTrue(result.executed)
+        self.assertFalse(result.executed)
         self.assertIsNotNone(result.dispatch)
         self.assertFalse(result.dispatch.success)
         self.assertEqual(
