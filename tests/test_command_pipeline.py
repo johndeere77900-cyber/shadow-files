@@ -113,7 +113,7 @@ class CommandPipelineTests(unittest.TestCase):
         )
 
         self.assertTrue(result.authorization.authorized)
-        self.assertTrue(result.executed)
+        self.assertFalse(result.executed)
         self.assertIsNotNone(result.dispatch)
         self.assertFalse(result.dispatch.success)
         self.assertEqual(
