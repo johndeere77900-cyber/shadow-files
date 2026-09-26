@@ -5,7 +5,9 @@ Coordinates the existing deterministic IntentParser with conversational
 context. This layer understands conversation and references but does not
 execute business operations.
 
-Execution remains controlled by the command/application layers.
+When an active case already exists in conversation context, supported
+case-scoped execution intents carry that explicit case_id forward to the
+command layer. No case identity is invented.
 """
 
 from dataclasses import dataclass
@@ -39,8 +41,9 @@ class ConversationService:
     1. records the user's message,
     2. uses the existing IntentParser,
     3. resolves conversational references,
-    4. records the interpretation,
-    5. returns structured conversation information.
+    4. carries explicit active-case context into case-scoped intents,
+    5. records the interpretation,
+    6. returns structured conversation information.
 
     It never executes the resulting action itself.
     """
@@ -225,12 +228,30 @@ class ConversationService:
         if intent.intent_type == IntentType.UNKNOWN:
             mode = ConversationMode.CLARIFICATION_REQUIRED
 
+        parameters = intent.parameters
+
+        if (
+            intent.intent_type == IntentType.RESEARCH
+            and context.active_case_id
+            and not any(
+                key == "case_id"
+                for key, _ in parameters
+            )
+        ):
+            parameters = (
+                *parameters,
+                (
+                    "case_id",
+                    context.active_case_id,
+                ),
+            )
+
         return ConversationIntentResult(
             mode=mode,
             intent=conversation_intent,
             confidence=intent.confidence,
             target=intent.target,
-            parameters=intent.parameters,
+            parameters=parameters,
         )
 
     @staticmethod
@@ -265,4 +286,4 @@ class ConversationService:
         return (
             f"intent={interpretation.intent.value}; "
             f"mode={interpretation.mode.value}"
-    )
+        )
