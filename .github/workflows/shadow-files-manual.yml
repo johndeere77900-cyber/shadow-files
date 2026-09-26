@@ -2,6 +2,11 @@ name: Shadow Files Manual Run
 
 on:
   workflow_dispatch:
+    inputs:
+      research_instruction:
+        description: "Live Shadow Files research instruction"
+        required: true
+        type: string
 
 jobs:
   run-shadow-files:
@@ -27,30 +32,55 @@ jobs:
         run: |
           python -m unittest discover -s tests -v
 
-      - name: Test live Tavily research connection
+      - name: Run live Shadow Files research
         env:
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+          RESEARCH_INSTRUCTION: ${{ inputs.research_instruction }}
         run: |
           python - <<'PY'
+          import os
+
           from app.investigation.tavily import TavilyResearchProvider
+
+          instruction = os.environ.get(
+              "RESEARCH_INSTRUCTION",
+              ""
+          ).strip()
+
+          if not instruction:
+              raise SystemExit(
+                  "Research instruction cannot be empty."
+              )
 
           provider = TavilyResearchProvider()
 
-          results = provider.search(
-              "unsolved cold case investigation official records"
-          )
+          results = provider.search(instruction)
 
           if not results:
               raise SystemExit(
-                  "Tavily connection succeeded but returned no results."
+                  "Tavily research completed but returned no results."
               )
 
           print(
-              f"Tavily connection successful: "
+              f"Live Shadow Files research successful: "
               f"{len(results)} result(s) returned."
           )
 
-          for index, result in enumerate(results[:3], start=1):
-              print(f"{index}. {result.title}")
+          print(f"Research instruction: {instruction}")
+
+          for index, result in enumerate(results, start=1):
+              print(f"\n{index}. {result.title}")
               print(f"   URL: {result.url}")
+
+              if result.published_date:
+                  print(
+                      f"   Published: "
+                      f"{result.published_date}"
+                  )
+
+              if result.content:
+                  print(
+                      f"   Evidence preview: "
+                      f"{result.content[:500]}"
+                  )
           PY
