@@ -4,8 +4,9 @@ Shadow Files conversational intent parser.
 This is the deterministic foundation for natural-language commands.
 It identifies clearly recognized requests without executing them.
 
-Research requests preserve the user's actual research instruction so
-the command layer can pass that instruction to the research service.
+Research requests preserve the user's research instruction and may
+carry an explicitly supplied case_id into the controlled command layer.
+Case identity is never inferred or invented.
 """
 
 import re
@@ -79,6 +80,22 @@ class IntentParser:
                 .strip(" \t\n:,-")
             )
 
+            case_id = None
+
+            case_match = re.search(
+                r"\bcase_id\s*=\s*([A-Za-z0-9._:-]+)\b",
+                target,
+                flags=re.IGNORECASE,
+            )
+
+            if case_match:
+                case_id = case_match.group(1).strip()
+
+                target = (
+                    target[:case_match.start()]
+                    + target[case_match.end():]
+                ).strip(" \t\n:,-")
+
             if re.fullmatch(
                 r"(?:this|the)\s+case\.?",
                 target,
@@ -86,10 +103,18 @@ class IntentParser:
             ):
                 target = ""
 
+            parameters = ()
+
+            if case_id:
+                parameters = (
+                    ("case_id", case_id),
+                )
+
             return Intent(
                 intent_type=IntentType.RESEARCH,
                 raw_text=text,
                 target=target or None,
+                parameters=parameters,
             )
 
         if self._matches(
