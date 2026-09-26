@@ -127,11 +127,11 @@ class CommandPipeline:
             command
         )
 
-                return PipelineResult(
+        return PipelineResult(
             intent=intent,
             command=command,
             validation=validation,
             authorization=authorization,
             dispatch=dispatch,
             executed=dispatch.success,
-            )
+        )
