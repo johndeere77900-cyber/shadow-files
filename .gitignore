@@ -18,6 +18,7 @@ htmlcov/
 *.db
 *.sqlite
 *.sqlite3
+!data/shadow_files.db
 
 # Environment and secrets
 .env
