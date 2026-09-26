@@ -79,12 +79,12 @@ class IntentParser:
                 .strip(" \t\n:,-")
             )
 
-            target = re.sub(
-                r"^(?:this|the)\s+",
-                "",
+            if re.fullmatch(
+                r"(?:this|the)\s+case\.?",
                 target,
                 flags=re.IGNORECASE,
-            ).strip()
+            ):
+                target = ""
 
             return Intent(
                 intent_type=IntentType.RESEARCH,
