@@ -26,3 +26,31 @@ jobs:
       - name: Run Shadow Files tests
         run: |
           python -m unittest discover -s tests -v
+
+      - name: Test live Tavily research connection
+        env:
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+        run: |
+          python - <<'PY'
+          from app.investigation.tavily import TavilyResearchProvider
+
+          provider = TavilyResearchProvider()
+
+          results = provider.search(
+              "unsolved cold case investigation official records"
+          )
+
+          if not results:
+              raise SystemExit(
+                  "Tavily connection succeeded but returned no results."
+              )
+
+          print(
+              f"Tavily connection successful: "
+              f"{len(results)} result(s) returned."
+          )
+
+          for index, result in enumerate(results[:3], start=1):
+              print(f"{index}. {result.title}")
+              print(f"   URL: {result.url}")
+          PY
