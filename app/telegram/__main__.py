@@ -1,16 +1,52 @@
 """
 Shadow Files Telegram runtime entry point.
 
-This module starts the configured Telegram transport and passes
-normalized incoming messages through the Telegram router.
+This module starts the configured Telegram transport, authorizes
+incoming messages, and passes authorized commands into the existing
+Shadow Files command service.
 
-Business execution remains outside the transport layer.
+Telegram remains an interface layer. Business execution stays inside
+the application's controlled command pipeline.
 """
 
+from app.application import build_command_service
 from app.telegram.config import TelegramConfig
 from app.telegram.messages import OutgoingMessage
 from app.telegram.router import TelegramRouter
 from app.telegram.transport import TelegramBotTransport
+from shadow_core.authorization import Actor
+
+
+def _response_text(response) -> str:
+    """
+    Convert a command-service response into a concise Telegram message.
+    """
+
+    if not response.success:
+        return (
+            f"Shadow Files command failed: "
+            f"{response.message}"
+        )
+
+    result = response.result
+
+    if result is None:
+        return response.message
+
+    lines = [
+        response.message,
+        f"Command: {result.command.command_type.value}",
+    ]
+
+    if result.dispatch is not None:
+        data = result.dispatch.data
+
+        if hasattr(data, "result_count"):
+            lines.append(
+                f"Research results: {data.result_count}"
+            )
+
+    return "\n".join(lines)
 
 
 def main() -> None:
@@ -44,28 +80,45 @@ def main() -> None:
         authorized_chat_id=config.authorized_chat_id,
     )
 
+    command_service = build_command_service()
+
     messages = transport.receive()
 
     for message in messages:
         try:
             route = router.route(message)
-        except Exception:
-            response = router.unauthorized_response(
-                chat_id=message.chat_id,
+
+            actor = Actor(
+                actor_id=route.actor.user_id,
+                role="operator",
             )
-            transport.send(response)
-            continue
 
-        response = OutgoingMessage(
-            chat_id=route.message.chat_id,
-            text=(
-                "Shadow Files received your message: "
-                f"{route.message.text}"
-            ),
-            reply_to_message_id=route.message.message_id,
-        )
+            response = command_service.execute(
+                actor=actor,
+                text=route.message.text,
+            )
 
-        transport.send(response)
+            transport.send(
+                OutgoingMessage(
+                    chat_id=route.message.chat_id,
+                    text=_response_text(response),
+                    reply_to_message_id=(
+                        route.message.message_id
+                    ),
+                )
+            )
+
+        except Exception as exc:
+            transport.send(
+                OutgoingMessage(
+                    chat_id=message.chat_id,
+                    text=(
+                        "Shadow Files could not process "
+                        f"this request: {exc}"
+                    ),
+                    reply_to_message_id=message.message_id,
+                )
+            )
 
 
 if __name__ == "__main__":
